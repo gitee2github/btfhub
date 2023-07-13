@@ -10,6 +10,8 @@ RUN yum -y install \
     clang \
     dwarves \
     findutils \
+    git \
+    jq \
     make \
     rsync \
     xz \

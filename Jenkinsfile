@@ -55,13 +55,17 @@ pipeline {
                 sh '''
                 docker run --rm openeuler-btfhub-ci-builder bash -c " \
                     set -x && \
-                    uname -a
+                    uname -a && \
                     clang --version && \
                     find --version && \
+                    git --version && \
                     go version && \
+                    jq --version && \
                     make --version && \
                     pahole --version && \
-                    rsync --version"
+                    rsync --version && \
+                    xargs --version && \
+                    xz --version"
                 '''
             }
         }
@@ -103,15 +107,21 @@ pipeline {
             }
         }
 
-        stage('Propose PR') {
+        stage('Create PR') {
             steps {
                 withCredentials([ usernamePassword(
                     credentialsId: params.BTFHUB_GIT_CREDENTIAL_ID,
-                    usernameVariable: 'BTFHUB_GIT_CREDENTIAL_USERNAME',
-                    passwordVariable: 'BTFHUB_GIT_CREDENTIAL_PASSWORD') ]) {
-                    dir('btfhub-archive') {
-                        sh '../btfhub/tools/ci/propose-pr.sh'
-                    }
+                    passwordVariable: 'BTFHUB_GITEE_API_TOKEN') ]) {
+                    sh '''
+                    docker run --rm -v "$(pwd):/workspace" \
+                        -e BTFHUB_GITEE_API_TOKEN \
+                        -e JOB_NAME \
+                        -e JOB_URL \
+                        openeuler-btfhub-ci-builder bash -c " \
+                            set -x && \
+                            cd /workspace/btfhub-archive && \
+                            ../btfhub/tools/ci/create-pr.sh"
+                    '''
                 }
             }
         }
