@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    triggers {
+        cron('H H(0-6) * * *')
+    }
+
     parameters {
         string(name: 'BTFHUB_ARCHIVE_REPO_URL',
             description: 'URL of the archive repository',
