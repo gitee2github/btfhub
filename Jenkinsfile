@@ -57,7 +57,7 @@ pipeline {
                 sh 'git --version'
 
                 sh '''
-                docker run --rm openeuler-btfhub-ci-builder bash -c " \
+                docker run --rm -u "$(id -u):$(id -g)" openeuler-btfhub-ci-builder bash -x -c " \
                     set -x && \
                     uname -a && \
                     clang --version && \
@@ -77,13 +77,13 @@ pipeline {
         stage('Generate BTF files') {
             steps {
                 sh '''
-                docker run --rm -v "$(pwd):/workspace" openeuler-btfhub-ci-builder bash -c " \
-                    set -x && \
-                    cd /workspace/btfhub && \
-                    make bring && \
-                    make && \
-                    ./btfhub -distro openEuler && \
-                    make take"
+                docker run --rm -v "$(pwd):/workspace" -u "$(id -u):$(id -g)" \
+                    openeuler-btfhub-ci-builder bash -x -c " \
+                        cd /workspace/btfhub && \
+                        make bring && \
+                        make && \
+                        ./btfhub -distro openEuler && \
+                        make take"
                 '''
             }
         }
@@ -117,12 +117,11 @@ pipeline {
                     credentialsId: params.BTFHUB_GIT_CREDENTIAL_ID,
                     passwordVariable: 'BTFHUB_GITEE_API_TOKEN') ]) {
                     sh '''
-                    docker run --rm -v "$(pwd):/workspace" \
+                    docker run --rm -v "$(pwd):/workspace" -u "$(id -u):$(id -g)" \
                         -e BTFHUB_GITEE_API_TOKEN \
                         -e JOB_NAME \
                         -e JOB_URL \
-                        openeuler-btfhub-ci-builder bash -c " \
-                            set -x && \
+                        openeuler-btfhub-ci-builder bash -x -c " \
                             cd /workspace/btfhub-archive && \
                             ../btfhub/tools/ci/create-pr.sh"
                     '''
