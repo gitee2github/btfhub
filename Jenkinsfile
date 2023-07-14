@@ -12,14 +12,14 @@ pipeline {
         string(name: 'BTFHUB_ARCHIVE_BUILD_BRANCH',
             description: 'Branch of the archive repository to build upon',
             defaultValue: 'next')
-        string(name: 'BTFHUB_GIT_AUTHOR_NAME',
-            description: 'Author name for Git commits',
-            defaultValue: 'Yang Hanlin')
-        string(name: 'BTFHUB_GIT_AUTHOR_EMAIL',
-            description: 'Author email for Git commits',
-            defaultValue: 'mattoncis@hotmail.com')
-        string(name: 'BTFHUB_GIT_CREDENTIAL_ID',
-            description: 'Credential ID for Git-related actions',
+        string(name: 'BTFHUB_GIT_AUTHOR_NAME_CREDENTIAL_ID',
+            description: 'Credential ID for author name in commits',
+            defaultValue: 'openeuler-btfhub-git-author-name')
+        string(name: 'BTFHUB_GIT_AUTHOR_EMAIL_CREDENTAIL_ID',
+            description: 'Credential ID for author email in commits',
+            defaultValue: 'openeuler-btfhub-git-author-email')
+        string(name: 'BTFHUB_GITEE_CREDENTIAL_ID',
+            description: 'Credentail ID for authentication with Gitee',
             defaultValue: 'gitee-hanlinyang-username-password')
     }
 
@@ -40,8 +40,17 @@ pipeline {
                             localBranch() ])
 
                     sh "git branch --set-upstream-to origin/${params.BTFHUB_ARCHIVE_BUILD_BRANCH}"
-                    sh "git config --local user.name '${params.BTFHUB_GIT_AUTHOR_NAME}'"
-                    sh "git config --local user.email '${params.BTFHUB_GIT_AUTHOR_EMAIL}'"
+
+                    withCredentials([
+                        string(
+                            credentialsId: params.BTFHUB_GIT_AUTHOR_NAME_CREDENTIAL_ID,
+                            variable: 'BTFHUB_GIT_AUTHOR_NAME'),
+                        string(
+                            credentialsId: params.BTFHUB_GIT_AUTHOR_EMAIL_CREDENTIAL_ID,
+                            variable: 'BTFHUB_GIT_AUTHOR_EMAIL') ]) {
+                        sh 'git config --local user.name "$BTFHUB_GIT_AUTHOR_NAME"'
+                        sh 'git config --local user.email "$BTFHUB_GIT_AUTHOR_EMAIL"'
+                    }
                 }
             }
         }
@@ -104,9 +113,9 @@ pipeline {
                     '''
 
                     withCredentials([
-                        gitUsernamePassword(credentialsId: params.BTFHUB_GIT_CREDENTIAL_ID) ]) {
+                        gitUsernamePassword(credentialsId: params.BTFHUB_GITEE_CREDENTIAL_ID) ]) {
                         sh 'git push'
-                    }
+                        }
                 }
             }
         }
@@ -114,7 +123,8 @@ pipeline {
         stage('Create PR') {
             steps {
                 withCredentials([ usernamePassword(
-                    credentialsId: params.BTFHUB_GIT_CREDENTIAL_ID,
+                    credentialsId: params.BTFHUB_GITEE_CREDENTIAL_ID,
+                    usernameVariable: '_UNUSED',
                     passwordVariable: 'BTFHUB_GITEE_API_TOKEN') ]) {
                     sh '''
                     docker run --rm -v "$(pwd):/workspace" -u "$(id -u):$(id -g)" \
@@ -125,7 +135,7 @@ pipeline {
                             cd /workspace/btfhub-archive && \
                             ../btfhub/tools/ci/create-pr.sh"
                     '''
-                }
+                    }
             }
         }
     }
